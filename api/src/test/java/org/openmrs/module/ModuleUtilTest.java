@@ -14,6 +14,8 @@ import static org.hamcrest.Matchers.empty;
 import static org.junit.Assert.assertThat;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -607,7 +609,7 @@ public class ModuleUtilTest extends BaseContextSensitiveTest {
 	}
 
 	/**
-	* @see ModuleUtl#file2url(File)
+	* @see ModuleUtil#file2url(File)
 	*/
 	@Test
 	@Verifies(value = "return null if file is null", method = "file2url(File)")
@@ -617,7 +619,17 @@ public class ModuleUtilTest extends BaseContextSensitiveTest {
 	}
 
 	/**
-	* @see ModuleUtl#getPackagesFromFile(File)
+    * @see ModuleUtil#file2url(File)
+    */
+    @Test //(expected = MalformedURLException.class)
+    @Verifies(value = "should throw MalformedURLException if file does not exist", method = "file2url(File)")
+    public void file2url_shouldThrowMalformedURLExpcetionIfFileDoesNotExist() throws MalformedURLException {
+    	File file = new File("#*$!/()&"); // file with a non-existent directory
+    	ModuleUtil.file2url(file);
+    }
+
+	/**
+	* @see ModuleUtil#getPackagesFromFile(File)
 	*/
 	@Test
 	public void getPackagesFromFile_shouldReturnEmptyStringSetIfNonJarFile() {
@@ -627,14 +639,13 @@ public class ModuleUtilTest extends BaseContextSensitiveTest {
 	}
 
 	/**
-	* @see ModuleUtl#getPackagesFromFile(File)
+	* @see ModuleUtil#getPackagesFromFile(File)
 	*/
 	@Test
 	public void getPackagesFromFile_shouldNotListLibMETAINFOrWebModuleInProvidedPackage() throws IOException{
 		File f = new File(this.getClass().getResource("/org/openmrs/module/include/test1-1.0-SNAPSHOT.omod").getFile());
 		File d = new File("/tmp/test1-1.0-SNAPSHOT.jar");
 		FileUtils.copyFile(f, d);
-		//File jarF = new File("tmp/test1-1.0-SNAPSHOT.jar");
 		Collection<String> result = ModuleUtil.getPackagesFromFile(d);
 		for (String string : result) {
 			Assert.assertFalse(string.contains("lib"));
@@ -644,5 +655,39 @@ public class ModuleUtilTest extends BaseContextSensitiveTest {
 		String pathFileToDelete = "/tmp/test1-1.0-SNAPSHOT.jar";
 		Path jarFileToDelete = Paths.get(pathFileToDelete);
 		Files.delete(jarFileToDelete);
+	}
+
+	/**
+	* @see ModuleUtil#insertModuleFile(InputStream, String)
+	*/
+	@Test(expected= ModuleException.class)
+	@Verifies(value = "should throw ModuleException if filename is null", method = "insertModuleFile(InputStream, String)")
+	public void insertModuleFile_shouldThrowModuleExceptionIfFilenameIsNull() throws ModuleException {
+		InputStream f = null;
+		String fname = "";
+		File resultFile = ModuleUtil.insertModuleFile(f, fname);
+	}
+
+	/**
+	* @see ModuleUtil#insertModuleFile(InputStream, String)
+	*/
+	@Test(expected= FileNotFoundException.class)
+	@Verifies(value = "should throw FileNotFoundException if inputStream does not exist", method = "insertModuleFile(InputStream, String)")
+	public void insertModuleFile_shouldThrowFileNotFoundExceptionIfInputStreamDoesNotExist() throws FileNotFoundException {
+		InputStream f = new FileInputStream("file.txt");
+		String fname = "foo";
+		File resultFile = ModuleUtil.insertModuleFile(f, fname);
+	}
+
+	/**
+	* @see ModuleUtil#insertModuleFile(InputStream, String)
+	*/
+	@Test(expected= ModuleException.class)
+	@Verifies(value = "should throw ModuleException if inputStream exists but filename is empty", method = "insertModuleFile(InputStream, String)")
+	public void insertModuleFile_shouldThrowModuleExceptionIfInputstreamExistsButFilenameIsEmpty() throws FileNotFoundException {
+		File existingFile = new File(this.getClass().getResource("/org/openmrs/module/include/test1-1.0-SNAPSHOT.omod").getFile());
+		InputStream f = new FileInputStream(existingFile);
+		String fname = "";
+		File resultFile = ModuleUtil.insertModuleFile(f, fname);
 	}
 }
